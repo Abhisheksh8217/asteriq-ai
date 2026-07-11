@@ -327,14 +327,14 @@ def bootstrap_company_indexes():
 
 
 # ─────────────────────────────────────────────
-# SERVER RUN
+# SERVER RUN & INITIALIZATION
 # ─────────────────────────────────────────────
 
-if __name__ == "__main__":
+def init_app():
     logger.info("Initializing system infrastructure and layers...")
     database.init_db()
     storage.init_storage()
-    
+
     # Run automatic session storage cleanup
     cleaned_sessions = storage.cleanup_expired_sessions()
     if cleaned_sessions:
@@ -343,5 +343,10 @@ if __name__ == "__main__":
     # Ingest default company profiles
     bootstrap_company_indexes()
 
+# Run initialization immediately when imported by Gunicorn
+init_app()
+
+
+if __name__ == "__main__":
     logger.info("Starting Flask application server on port 5000...")
     app.run(debug=True, port=5000, use_reloader=False)
