@@ -113,6 +113,7 @@ SESSION_EXPIRY_HOURS = 24
 MAX_CACHED_INDEXES = 20
 
 # ─────────────────────────────────────────────
+ALLOWED_ORIGINS_RAW = os.getenv("ALLOWED_ORIGINS", "")
 ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
@@ -120,6 +121,8 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "null"
 ]
+if ALLOWED_ORIGINS_RAW:
+    ALLOWED_ORIGINS.extend([o.strip() for o in ALLOWED_ORIGINS_RAW.split(",") if o.strip()])
 
 # ─────────────────────────────────────────────
 # LOGGING CONFIGURATION
