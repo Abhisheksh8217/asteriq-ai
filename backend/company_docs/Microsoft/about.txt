@@ -1,0 +1,28 @@
+Microsoft Company Profile and Interview Guidelines
+==================================================
+
+Cultural Pillars & Mindset:
+--------------------------
+1. Growth Mindset: We believe that potential is nurtured, not fixed. We should be open to learning, take risks, seek feedback, and learn from our mistakes.
+2. Customer Obsessed: Listening to clients, understanding their business goals, and designing software that makes their operations more efficient.
+3. Diversity and Inclusion: Valuing different perspectives and building products accessible to every person on the planet.
+4. One Microsoft: Working across boundaries and division walls to build unified experiences (e.g. Azure, Office, Windows, Xbox).
+
+Software Engineering Standards:
+------------------------------
+1. Backward compatibility and reliability: Microsoft products serve enterprise users who demand high stability and long-term support.
+2. Cloud-first architecture: Designing services targeting Azure scalability, reliability patterns, and secure global endpoints.
+3. Developer productivity and tooling: Microsoft values good developer tooling, reusable NuGet/npm libraries, and standardized deployment templates.
+4. Security Development Lifecycle (SDL): Strict compliance with security guidelines, code analysis, threat modeling, and dependency audits.
+
+Technology Stack:
+-----------------
+* Languages: C# (.NET), TypeScript/JavaScript, C++, Python, Rust.
+* Cloud: Microsoft Azure (Azure App Services, Functions, Cosmos DB, SQL Database, Azure Kubernetes Service).
+* Tools: Visual Studio, VS Code, GitHub Actions, NuGet, npm.
+
+Interview Focus Areas:
+----------------------
+* Coding and Design: Object-oriented programming, design patterns (SOLID, clean architecture), API design, and clean separation of concerns.
+* System Design: Azure-centric scaling, global data replication, message brokers, caching (Redis), and network security.
+* Behavioral: Evaluating how candidates handle feedback, adapt to tech stack shifts, and collaborate across teams to resolve complex challenges.

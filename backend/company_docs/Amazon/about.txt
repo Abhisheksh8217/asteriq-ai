@@ -1,0 +1,30 @@
+Amazon Company Profile and Interview Guidelines
+===============================================
+
+Leadership Principles (LP) Overview:
+------------------------------------
+Every Amazon interview candidate is evaluated against the 16 Leadership Principles. The most critical for engineering roles include:
+1. Customer Obsession: Leaders start with the customer and work backwards. They work vigorously to earn and keep customer trust.
+2. Ownership: Leaders are owners. They think long-term and don't sacrifice long-term value for short-term results. They never say "that's not my job".
+3. Bias for Action: Speed matters in business. Many decisions and actions are reversible and do not need extensive study. We value calculated risk-taking.
+4. Dive Deep: Leaders operate at all levels, stay connected to the details, audit frequently, and are skeptical when metrics and anecdote differ. No task is beneath them.
+5. Deliver Results: Leaders focus on the key inputs for their business and deliver them with the right quality and in a timely fashion.
+6. Hire and Develop the Best: Leaders raise the performance bar with every hire and promotion.
+
+Technical and Architectural Standards:
+-------------------------------------
+1. Decentralized microservices: Amazon popularized service-oriented architecture (SOA) and two-pizza teams. Each microservice must own its data and expose strict APIs.
+2. Operational Excellence: Engineers are on-call for the services they write. Reliability, scaling under sudden loads (Prime Day), and fast deployment rollbacks are vital.
+3. Minimal operational footprint: Preference for serverless (AWS Lambda) and managed services (DynamoDB, RDS, SQS, ECS) to minimize administration tasks.
+
+Technology Stack:
+-----------------
+* Languages: Java, Python, C++, TypeScript, Rust.
+* Cloud: Extensive usage of Amazon Web Services (AWS) solutions (S3, DynamoDB, Lambda, ECS, Fargate, IAM).
+* Practices: Continuous deployment pipelines, automated rollouts, code reviews.
+
+Interview Focus Areas:
+----------------------
+* Behavioral STAR questions: Situation, Task, Action, Result. Every answer must reference specific numbers and outcomes matching LPs.
+* System Design: Focusing on AWS scaling paradigms, service isolation, event-driven architectures, and database choices (NoSQL vs relational).
+* Software Engineering: Data structures, object-oriented design patterns, coding with focus on security and efficiency.

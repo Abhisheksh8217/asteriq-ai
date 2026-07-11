@@ -1,0 +1,28 @@
+Google Company Profile and Interview Guidelines
+===============================================
+
+Core Cultural Values & Expectation ("Googleyness"):
+--------------------------------------------------
+1. Doing the right thing: Google employees (Googlers) are expected to act with high integrity, respect their coworkers, and prioritize the user's benefit above all.
+2. Intellectual humility and adaptability: The capacity to learn, grow, and adjust to changing requirements rather than holding rigid beliefs.
+3. High agency and bias for action: Google values engineers who proactively tackle ambiguous problems, take ownership, and lead without needing explicit authorization.
+4. Collaborative spirit: Designing systems together, conducting peer reviews, and mentoring others.
+
+Engineering Excellence Standards:
+---------------------------------
+1. Simplicity over cleverness: Code should be clean, readable, well-tested, and easy to maintain. Over-engineering is discouraged.
+2. System design and scalability: Google services serve billions of queries. Systems must be designed for high availability, low latency, fault tolerance, and proper partitioning.
+3. Testing rigour: Write comprehensive unit, integration, and end-to-end tests. Code changes should not proceed without adequate coverage.
+4. Monitoring and observability: Software must expose proper telemetry (metrics, logging, tracing) to ensure issues can be diagnosed in production.
+
+Technology Stack:
+-----------------
+* Languages: Python, Go, C++, Java, Kotlin, TypeScript.
+* Infrastructure: Kubernetes, Borg, Protobuf, gRPC, Spanner, Bigtable, TensorFlow.
+* Practices: Monorepo workflow, strict style guides, continuous deployment.
+
+Interview Focus Areas:
+----------------------
+* Algorithm and Data Structures: Space and time complexity (Big-O notation), dynamic programming, graph traversals, and sorting.
+* System Design: Scalability, load balancing, caching, database indexing, and network protocols.
+* Behavioral: Demonstrating leadership in past projects, navigating teamwork conflicts, and handling failure.
