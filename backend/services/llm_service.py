@@ -45,7 +45,8 @@ class LLMService:
         try:
             self._model = init_chat_model(
                 model_name,
-                api_key=api_key
+                api_key=api_key,
+                max_retries=0
             )
             self._current_model_name = model_name
             self._current_api_key = api_key

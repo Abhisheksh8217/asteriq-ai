@@ -12,7 +12,7 @@ is temporarily unavailable.
 """
 
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from config import GOOGLE_API_KEY, EMBEDDING_MODEL, EMBEDDING_TASK_TYPE
+from config import GOOGLE_API_KEYS, EMBEDDING_MODEL, EMBEDDING_TASK_TYPE
 from logger import get_logger
 
 logger = get_logger(__name__)
@@ -22,12 +22,25 @@ class EmbeddingService:
     """
     Wraps the Google Generative AI embedding model.
 
-    The model instance is cached after first initialization
-    to avoid re-creating it on every embedding call.
+    Supports multi-key fallback rotation and instant fail-fast behavior
+    to prevent Gunicorn timeouts during rate limits.
     """
 
     def __init__(self):
         self._model = None
+        self._current_api_key = GOOGLE_API_KEYS[0] if GOOGLE_API_KEYS else ""
+
+    def _initialize_model(self, api_key: str) -> None:
+        """Initializes the embedding model with the specified API key."""
+        if not api_key:
+            raise ValueError("No Google API Key available for embedding model")
+        self._model = GoogleGenerativeAIEmbeddings(
+            model=EMBEDDING_MODEL,
+            google_api_key=api_key,
+            task_type=EMBEDDING_TASK_TYPE,
+            max_retries=0
+        )
+        self._current_api_key = api_key
 
     def _get_model(self) -> GoogleGenerativeAIEmbeddings:
         """
@@ -35,17 +48,29 @@ class EmbeddingService:
         Cached after first call.
         """
         if self._model is None:
-            if not GOOGLE_API_KEY:
-                raise ValueError("GOOGLE_API_KEY is not set in .env")
-
-            self._model = GoogleGenerativeAIEmbeddings(
-                model=EMBEDDING_MODEL,
-                google_api_key=GOOGLE_API_KEY,
-                task_type=EMBEDDING_TASK_TYPE,
-            )
+            self._initialize_model(self._current_api_key)
             logger.info("Embedding model initialized: %s", EMBEDDING_MODEL)
-
         return self._model
+
+    def _rotate_key_and_retry(self) -> bool:
+        """Rotates the current API key to a fallback key if available."""
+        global GOOGLE_API_KEYS
+        if len(GOOGLE_API_KEYS) <= 1:
+            return False
+            
+        failed_key = self._current_api_key
+        if failed_key in GOOGLE_API_KEYS:
+            GOOGLE_API_KEYS.remove(failed_key)
+            GOOGLE_API_KEYS.append(failed_key)
+            
+        new_key = GOOGLE_API_KEYS[0]
+        logger.info("Rotating embedding API key to fallback key...")
+        try:
+            self._initialize_model(new_key)
+            return True
+        except Exception as e:
+            logger.error("Failed to initialize embedding model with fallback key: %s", e)
+            return False
 
     @property
     def model(self) -> GoogleGenerativeAIEmbeddings:
@@ -68,7 +93,13 @@ class EmbeddingService:
         try:
             return self._get_model().embed_query(text)
         except Exception as e:
-            logger.error("Query embedding failed: %s", e, exc_info=True)
+            logger.warning("Query embedding failed: %s. Attempting fallback...", e)
+            if self._rotate_key_and_retry():
+                try:
+                    return self._get_model().embed_query(text)
+                except Exception as retry_err:
+                    logger.error("Query embedding fallback failed: %s", retry_err, exc_info=True)
+                    raise
             raise RuntimeError(f"Embedding service error: {e}") from e
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
@@ -84,7 +115,13 @@ class EmbeddingService:
         try:
             return self._get_model().embed_documents(texts)
         except Exception as e:
-            logger.error("Document embedding failed: %s", e, exc_info=True)
+            logger.warning("Document embedding failed: %s. Attempting fallback...", e)
+            if self._rotate_key_and_retry():
+                try:
+                    return self._get_model().embed_documents(texts)
+                except Exception as retry_err:
+                    logger.error("Document embedding fallback failed: %s", retry_err, exc_info=True)
+                    raise
             raise RuntimeError(f"Embedding service error: {e}") from e
 
 
