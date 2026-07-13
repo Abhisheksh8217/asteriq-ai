@@ -186,20 +186,45 @@ class LLMService:
     def invoke_stateless(self, messages: list) -> str:
         """
         Invokes the LLM model directly without a LangGraph agent or checkpointer.
-        Useful for quick one-off classifications that shouldn't pollute conversation memory.
+        Supports automatic key fallback switching if rate limits (429) are encountered.
         """
         try:
             from langchain_core.messages import HumanMessage
             formatted_messages = [HumanMessage(content=m["content"]) for m in messages if m["role"] == "user"]
             response = self.model.invoke(formatted_messages)
-            
+
             if isinstance(response.content, list):
                 content = "".join([str(item.get("text", item)) if isinstance(item, dict) else str(item) for item in response.content])
             else:
                 content = str(response.content)
             return content
         except Exception as e:
-            logger.error("Stateless LLM invocation failed: %s", e)
+            err_str = str(e).lower()
+            if any(term in err_str for term in ["429", "503", "500", "502", "504", "resource_exhausted", "rate_limit", "rate limit", "unavailable", "high demand", "temporary"]):
+                logger.warning("Stateless model encountered API error or rate limit. Attempting auto-fallback key switching...")
+                
+                # Try each API key in the list sequentially
+                for fallback_key in GOOGLE_API_KEYS:
+                    if fallback_key == self._current_api_key:
+                        continue
+                    logger.info("Attempting stateless switch to alternate key...")
+                    try:
+                        self._initialize_model(self._current_model_name, api_key=fallback_key)
+                        from langchain_core.messages import HumanMessage
+                        formatted_messages = [HumanMessage(content=m["content"]) for m in messages if m["role"] == "user"]
+                        response = self.model.invoke(formatted_messages)
+
+                        if isinstance(response.content, list):
+                            content = "".join([str(item.get("text", item)) if isinstance(item, dict) else str(item) for item in response.content])
+                        else:
+                            content = str(response.content)
+                        logger.info("Stateless invocation successfully recovered using alternate key!")
+                        return content
+                    except Exception as fallback_err:
+                        logger.error("Stateless fallback attempt failed: %s", fallback_err)
+                        continue
+
+            logger.error("Stateless LLM invocation failed: %s", e, exc_info=True)
             return ""
 
 

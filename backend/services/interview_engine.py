@@ -186,14 +186,16 @@ class InterviewEngine:
             database.save_question(session_id, question_number=1, question=question_text)
             database.update_session_question_count(session_id, 1)
      
-            # 7. Yield speech stream
-            return speech_service.stream_tts(question_text)
+            # 7. Get speech base64
+            audio_base64 = speech_service.get_tts_base64(question_text)
+            return question_text, audio_base64
         except Exception as e:
             logger.error("LLM service totally failed during start after all fallbacks: %s", e)
             apology = "I sincerely apologize, but my servers are currently overwhelmed and I cannot start the interview right now. Please try again later."
-            return speech_service.stream_tts(apology)
+            audio_base64 = speech_service.get_tts_base64(apology)
+            return apology, audio_base64
 
-    def submit_answer(self, session_id: str, audio_file: Any) -> Tuple[Generator[str, None, None], Dict[str, str]]:
+    def submit_answer(self, session_id: str, audio_file: Any) -> Tuple[str, str, Dict[str, str]]:
         """
         Transcribes the uploaded audio, invokes the agent state loop, decides if evaluation should trigger,
         updates state counts, and streams back the next speech audio.
@@ -244,8 +246,8 @@ class InterviewEngine:
                 
                 # Save the new question state (overwrites the current question row in DB with the clarified version)
                 database.save_question(session_id, question_number=question_count, question=next_question_text)
-                
-                return speech_service.stream_tts(next_question_text), {"X-Question-Number": str(question_count)}
+                audio_base64 = speech_service.get_tts_base64(next_question_text)
+                return next_question_text, audio_base64, {"X-Question-Number": str(question_count)}
      
             # 5. Determine next state: closing or next question
             if question_count >= total_questions:
@@ -261,7 +263,8 @@ class InterviewEngine:
                 self.evict_session(session_id)
      
                 logger.info("Session %s completed successfully.", session_id)
-                return speech_service.stream_tts(closing_text), {"X-Interview-Complete": "true"}
+                audio_base64 = speech_service.get_tts_base64(closing_text)
+                return closing_text, audio_base64, {"X-Interview-Complete": "true"}
             
             # Proceed to next question
             next_question_num = question_count + 1
@@ -331,12 +334,13 @@ class InterviewEngine:
             # Save question and update counts in DB
             database.save_question(session_id, question_number=next_question_num, question=next_question_text)
             database.update_session_question_count(session_id, next_question_num)
-     
-            return speech_service.stream_tts(next_question_text), {"X-Question-Number": str(next_question_num)}
+            audio_base64 = speech_service.get_tts_base64(next_question_text)
+            return next_question_text, audio_base64, {"X-Question-Number": str(next_question_num)}
         except Exception as e:
             logger.error("LLM service totally failed after all fallbacks: %s", e)
             apology = "I sincerely apologize, but my servers are currently overwhelmed and I cannot process your answer right now. Please try again in a few moments."
-            return speech_service.stream_tts(apology), {"X-Error-Fallback": "true"}
+            audio_base64 = speech_service.get_tts_base64(apology)
+            return apology, audio_base64, {"X-Error-Fallback": "true"}
  
     def evict_session(self, session_id: str) -> None:
         """

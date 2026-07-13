@@ -186,7 +186,7 @@ def start_interview(current_user):
     total_questions = 10 if mode == "company" else 5
 
     # Start session execution flow
-    audio_generator = interview_engine.start_interview(
+    question_text, audio_base64 = interview_engine.start_interview(
         session_id=session_id,
         mode=mode,
         topic=subject,
@@ -195,11 +195,14 @@ def start_interview(current_user):
         total_questions=total_questions
     )
 
-    return Response(
-        audio_generator,
-        mimetype='text/plain',
-        headers={'X-Session-ID': session_id}
-    )
+    response = make_response(jsonify({
+        "success": True,
+        "session_id": session_id,
+        "question": question_text,
+        "audio": audio_base64
+    }))
+    response.headers['X-Session-ID'] = session_id
+    return response
 
 
 @app.route("/submit-answer", methods=["POST"])
@@ -223,14 +226,17 @@ def submit_answer(current_user):
 
     audio_file = request.files["audio"]
 
-    # Submit answer and retrieve audio reply stream
-    audio_generator, headers = interview_engine.submit_answer(session_id, audio_file)
+    # Submit answer and retrieve audio reply
+    question_text, audio_base64, headers = interview_engine.submit_answer(session_id, audio_file)
 
-    return Response(
-        audio_generator,
-        mimetype='text/plain',
-        headers=headers
-    )
+    response = make_response(jsonify({
+        "success": True,
+        "question": question_text,
+        "audio": audio_base64
+    }))
+    for k, v in headers.items():
+        response.headers[k] = v
+    return response
 
 
 @app.route("/upload-document", methods=["POST"])

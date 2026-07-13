@@ -44,19 +44,26 @@ class FeedbackService:
 
         topic = session["topic"]
 
-        # 2. Retrieve agent checkpointer from cache or DB restore
-        agent = interview_engine._get_agent(session_id)
+        # 2. Retrieve conversation history directly from database
+        history = database.get_interview_history(session_id)
+        if not history:
+            logger.warning("No dialogue history found in database for session %s", session_id)
+            history_text = "No conversation occurred."
+        else:
+            history_text = ""
+            for idx, record in enumerate(history):
+                q = record.get("question") or ""
+                a = record.get("answer") or ""
+                history_text += f"Interviewer: {q}\nCandidate: {a}\n\n"
 
-        # 3. Build evaluation prompt
-        eval_prompt = prompt_builder.build_feedback_prompt(topic)
+        # 3. Build evaluation prompt containing full conversation context
+        eval_prompt = prompt_builder.build_feedback_prompt(topic) + f"\n\nCONVERSATION HISTORY:\n{history_text}"
 
-        # 4. Invoke LLM agent
+        # 4. Invoke LLM statelessly
         logger.info("Requesting evaluation metrics from LLM...")
         try:
-            raw_response = llm_service.invoke(
-                agent=agent,
-                messages=[{"role": "user", "content": eval_prompt}],
-                thread_id=session_id
+            raw_response = llm_service.invoke_stateless(
+                messages=[{"role": "user", "content": eval_prompt}]
             )
         except Exception as e:
             logger.error("Failed to query LLM for interview feedback: %s", e)

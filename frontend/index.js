@@ -347,87 +347,42 @@ async function handleFileUpload(file, docType, statusElement) {
 
 // ========== AUDIO FUNCTIONS ==========
 
-function handleAudioStream(response, onComplete) {
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let mediaSource = new MediaSource();
-    let audioUrl = URL.createObjectURL(mediaSource);
-    let sourceBuffer;
-    let queue = [];
-    let isSourceBufferReady = false;
-
-    // Only show speaking bubble when streaming audio
-    speakingBubble.classList.remove("hidden");
-    isSpeaking = true;
-    recordBtn.disabled = false;
-    recordingStatus.textContent = "ANZ is speaking... (Click Mic to interrupt and record)";
-
+function playAudioBase64(base64Data, onComplete) {
+    if (!base64Data) {
+        if (onComplete) onComplete();
+        return;
+    }
+    
+    // Stop any currently playing audio
     if (currentAudio) {
         currentAudio.pause();
         currentAudio = null;
     }
+    
+    speakingBubble.classList.remove("hidden");
+    isSpeaking = true;
+    recordBtn.disabled = false;
+    recordingStatus.textContent = "ANZ is speaking... (Click Mic to interrupt and record)";
+    
+    const audioUrl = "data:audio/mp3;base64," + base64Data;
     currentAudio = new Audio(audioUrl);
-    currentAudio.play().catch(() => {});
-
-    mediaSource.addEventListener("sourceopen", () => {
-        sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
-        isSourceBufferReady = true;
-        while (queue.length > 0 && !sourceBuffer.updating) {
-            sourceBuffer.appendBuffer(queue.shift());
-        }
-        sourceBuffer.addEventListener("updateend", () => {
-            if (queue.length > 0 && !sourceBuffer.updating) {
-                sourceBuffer.appendBuffer(queue.shift());
-            }
-        });
+    
+    currentAudio.play().catch((err) => {
+        console.error("Audio playback failed:", err);
     });
-
-    function processChunk({ done, value }) {
-        if (done) {
-            if (mediaSource.readyState === "open") {
-                try {
-                    mediaSource.endOfStream();
-                } catch (e) {}
-            }
-            if (onComplete) onComplete();
-            return;
-        }
-        const textChunk = decoder.decode(value, { stream: true });
-        textChunk.split("\n").forEach((line) => {
-            if (line.trim()) {
-                try {
-                    const binaryString = atob(line);
-                    const bytes = new Uint8Array(binaryString.length);
-                    for (let i = 0; i < binaryString.length; i++) {
-                        bytes[i] = binaryString.charCodeAt(i);
-                    }
-                    if (isSourceBufferReady && !sourceBuffer.updating) {
-                        sourceBuffer.appendBuffer(bytes);
-                    } else {
-                        queue.push(bytes);
-                    }
-                } catch (e) {
-                    console.error("Base64 decode error:", e);
-                }
-            }
-        });
-        reader.read().then(processChunk);
-    }
-
-    reader.read().then(processChunk);
-
+    
     currentAudio.onended = () => {
         isSpeaking = false;
         speakingBubble.classList.add("hidden");
         enableRecording();
-        URL.revokeObjectURL(audioUrl);
+        if (onComplete) onComplete();
     };
-
+    
     currentAudio.onerror = () => {
         isSpeaking = false;
         speakingBubble.classList.add("hidden");
         enableRecording();
-        URL.revokeObjectURL(audioUrl);
+        if (onComplete) onComplete();
     };
 }
 
@@ -536,18 +491,11 @@ async function startInterview() {
         }
         localStorage.setItem("asteriq_active_session_id", getSessionId());
 
-        const contentType = response.headers.get("content-type");
-        
-        if (contentType && contentType.includes("text/plain")) {
-            handleAudioStream(response, () => {
-                endInterviewBtn.disabled = false;
-            });
-        } else {
-            const data = await response.json();
-            console.log("Question:", data.question);
-            enableRecording();
+        const data = await response.json();
+        console.log("Question:", data.question);
+        playAudioBase64(data.audio, () => {
             endInterviewBtn.disabled = false;
-        }
+        });
     } catch (error) {
         recordingStatus.textContent = "Backend offline or connection error.";
         hideSpeakingBubble();
@@ -573,7 +521,6 @@ async function submitAnswer() {
             body: formData
         });
         
-        const contentType = response.headers.get("content-type");
         const isComplete = response.headers.get('X-Interview-Complete') === 'true';
         const questionNumber = response.headers.get('X-Question-Number');
         
@@ -581,34 +528,18 @@ async function submitAnswer() {
             updateQuestionNumber(questionNumber);
         }
         
-        if (contentType && contentType.includes("text/plain")) {
-            handleAudioStream(response, () => {
-                recordedBlob = null;
-                recordingChunks = [];
-                
-                if (isComplete) {
-                    currentAudio.onended = () => {
-                        isSpeaking = false;
-                        hideSpeakingBubble();
-                        showFeedbackSection();
-                    };
-                } else {
-                    endInterviewBtn.disabled = false;
-                }
-            });
-        } else {
-            const data = await response.json();
-            console.log("Response:", data);
-            recordedBlob = null;
-            recordingChunks = [];
-            
+        const data = await response.json();
+        console.log("Response:", data);
+        recordedBlob = null;
+        recordingChunks = [];
+
+        playAudioBase64(data.audio, () => {
             if (isComplete) {
                 showFeedbackSection();
             } else {
-                enableRecording();
                 endInterviewBtn.disabled = false;
             }
-        }
+        });
     } catch (error) {
         recordingStatus.textContent = "Connection failed. Please retry submission.";
         hideSpeakingBubble();

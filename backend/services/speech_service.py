@@ -38,6 +38,50 @@ class SpeechService:
     STT: Transcribes WebM audio blobs via Groq Whisper API for ultra-low latency.
     """
 
+    def get_tts_base64(self, text: str) -> str:
+        """
+        Synthesizes text-to-speech audio from Edge-TTS and returns it as a single base64 string.
+
+        Args:
+            text: The text to convert to speech.
+
+        Returns:
+            Base64-encoded audio string.
+        """
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+                temp_path = tmp.name
+
+            logger.info("Synthesizing Edge-TTS audio for text (%d chars)", len(text))
+            
+            import sys
+            command = [
+                sys.executable, "-m", "edge_tts",
+                "--voice", EDGE_TTS_VOICE,
+                "--rate", EDGE_TTS_RATE,
+                "--pitch", EDGE_TTS_PITCH,
+                "--text", text,
+                "--write-media", temp_path
+            ]
+            
+            subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            with open(temp_path, "rb") as f:
+                audio_bytes = f.read()
+
+            logger.info("Edge-TTS synthesis completed successfully. Size: %d bytes", len(audio_bytes))
+            return base64.b64encode(audio_bytes).decode("utf-8")
+
+        except subprocess.CalledProcessError as e:
+            logger.error("Edge-TTS subprocess failed: %s", e.stderr.decode("utf-8"), exc_info=True)
+            raise RuntimeError(f"Edge-TTS synthesis failed: {e}")
+        except Exception as e:
+            logger.error("TTS synthesis failed: %s", e, exc_info=True)
+            raise RuntimeError(f"TTS service unavailable: {e}") from e
+        finally:
+            if 'temp_path' in locals() and os.path.exists(temp_path):
+                os.unlink(temp_path)
+
     def stream_tts(self, text: str):
         """
         Streams text-to-speech audio from Edge-TTS.

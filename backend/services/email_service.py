@@ -196,7 +196,7 @@ class EmailService:
             msg.attach(part_html)
 
             # Establish secure connection
-            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=5)
             server.starttls()
             server.login(SMTP_USER, SMTP_PASSWORD)
             

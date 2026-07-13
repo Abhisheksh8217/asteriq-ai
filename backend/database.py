@@ -17,6 +17,7 @@ Thread safety is handled via check_same_thread=False + WAL journal mode.
 
 import psycopg2
 import psycopg2.extras
+from psycopg2.pool import ThreadedConnectionPool
 import os
 from datetime import datetime, timedelta
 from typing import Optional
@@ -28,14 +29,45 @@ logger = get_logger(__name__)
 # Ensure storage directory exists before DB is created
 os.makedirs(STORAGE_DIR, exist_ok=True)
 
+# Connection pool instance
+_connection_pool = None
+
+def init_connection_pool():
+    global _connection_pool
+    if _connection_pool is None:
+        try:
+            logger.info("Initializing psycopg2 ThreadedConnectionPool...")
+            _connection_pool = ThreadedConnectionPool(
+                minconn=2,
+                maxconn=15,
+                dsn=DATABASE_URL
+            )
+        except Exception as e:
+            logger.error("Failed to initialize database connection pool: %s", e, exc_info=True)
+            raise
+
+class ConnectionContext:
+    def __init__(self):
+        self.conn = None
+
+    def __enter__(self):
+        global _connection_pool
+        if _connection_pool is None:
+            init_connection_pool()
+        self.conn = _connection_pool.getconn()
+        self.conn.autocommit = True
+        return self.conn
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        global _connection_pool
+        if _connection_pool is not None and self.conn is not None:
+            _connection_pool.putconn(self.conn)
 
 def get_connection():
     """
-    Returns a PostgreSQL connection.
+    Returns a PostgreSQL connection context manager wrapper from the pool.
     """
-    conn = psycopg2.connect(DATABASE_URL)
-    conn.autocommit = True
-    return conn
+    return ConnectionContext()
 
 
 def _execute(conn, query, params=None):
@@ -52,6 +84,7 @@ def init_db() -> None:
     Safe to call on every application startup.
     Runs self-healing schema migration if transitioning from username to email layouts.
     """
+    init_connection_pool()
     with get_connection() as conn:
         # Self-healing Migration Check: Check if old users table has username column
         table_check = _execute(conn, 
