@@ -125,8 +125,8 @@ class LLMService:
                 
                 # List of model fallbacks (using standard Google API Studio model names)
                 fallback_models = [
-                    "google_genai:gemini-2.5-flash",
                     "google_genai:gemini-1.5-flash",
+                    "google_genai:gemini-2.0-flash",
                     "google_genai:gemini-1.5-pro",
                 ]
                 

@@ -8,7 +8,7 @@ Initializes folders, databases, and company RAG stores on startup.
 """
 
 import uuid
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, make_response
 
 from config import ALLOWED_ORIGINS
 from logger import get_logger

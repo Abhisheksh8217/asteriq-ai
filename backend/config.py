@@ -48,7 +48,7 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 # LLM CONFIGURATION
 # ─────────────────────────────────────────────
 LLM_PROVIDER = "google_genai"
-LLM_MODEL = "gemini-2.5-flash"
+LLM_MODEL = "gemini-1.5-flash"
 LLM_FULL_MODEL = f"{LLM_PROVIDER}:{LLM_MODEL}"
 
 # EMBEDDING CONFIGURATION
