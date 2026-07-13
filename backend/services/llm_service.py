@@ -119,15 +119,15 @@ class LLMService:
             return content
         except Exception as e:
             err_str = str(e).lower()
-            # Intercept 429/503 rate limits, temporary overloads, or service unavailability
-            if any(term in err_str for term in ["429", "503", "500", "502", "504", "resource_exhausted", "rate_limit", "rate limit", "unavailable", "high demand", "temporary"]):
-                logger.warning("Primary model (%s) encountered API service error or rate limit. Activating auto-fallback model switching...", self._current_model_name)
+            # Intercept 429/503 rate limits, 404 not found (e.g. for new keys), temporary overloads, or service unavailability
+            if any(term in err_str for term in ["429", "503", "500", "502", "504", "404", "not_found", "not found", "resource_exhausted", "rate_limit", "rate limit", "unavailable", "high demand", "temporary"]):
+                logger.warning("Primary model (%s) encountered API service error, rate limit, or model availability issue. Activating auto-fallback model/key switching...", self._current_model_name)
                 
                 # List of model fallbacks (using standard Google API Studio model names)
                 fallback_models = [
-                    "google_genai:gemini-1.5-flash",
+                    "google_genai:gemini-2.5-flash",
+                    "google_genai:gemini-3.5-flash",
                     "google_genai:gemini-2.0-flash",
-                    "google_genai:gemini-1.5-pro",
                 ]
                 
                 # Generate a flat list of (model, api_key) pairs to try
@@ -200,8 +200,8 @@ class LLMService:
             return content
         except Exception as e:
             err_str = str(e).lower()
-            if any(term in err_str for term in ["429", "503", "500", "502", "504", "resource_exhausted", "rate_limit", "rate limit", "unavailable", "high demand", "temporary"]):
-                logger.warning("Stateless model encountered API error or rate limit. Attempting auto-fallback key switching...")
+            if any(term in err_str for term in ["429", "503", "500", "502", "504", "404", "not_found", "not found", "resource_exhausted", "rate_limit", "rate limit", "unavailable", "high demand", "temporary"]):
+                logger.warning("Stateless model encountered API error, rate limit, or model availability issue. Attempting auto-fallback key switching...")
                 
                 # Try each API key in the list sequentially
                 for fallback_key in GOOGLE_API_KEYS:
